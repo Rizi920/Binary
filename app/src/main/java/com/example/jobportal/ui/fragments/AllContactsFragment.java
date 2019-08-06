@@ -1,0 +1,230 @@
+package com.example.jobportal.ui.fragments;
+
+import android.app.ProgressDialog;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.net.Uri;
+import android.os.Bundle;
+import android.support.v4.app.Fragment;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.TextView;
+
+import com.example.jobportal.R;
+import com.example.jobportal.adapters.ContactsAdapter;
+import com.example.jobportal.listeners.ContactsAdapterCallBack;
+import com.example.jobportal.listeners.ContactsDataSuccess;
+import com.example.jobportal.models.Contacts.ContactsResponse;
+import com.example.jobportal.models.Contacts.DataItem;
+import com.example.jobportal.network.ApiClient;
+import com.example.jobportal.network.ApiServices;
+import com.example.jobportal.ui.activities.DetailsActivity;
+import com.example.jobportal.utils.BaseUtlis;
+import com.example.jobportal.utils.DetailsParceableObject;
+import com.google.gson.Gson;
+
+
+import java.util.ArrayList;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
+import static android.content.Context.MODE_PRIVATE;
+
+/**
+ * A simple {@link Fragment} subclass.
+ * Activities that contain this fragment must implement the
+ * {@link AllContactsFragment.OnFragmentInteractionListener} interface
+ * to handle interaction events.
+ * Use the {@link AllContactsFragment#newInstance} factory method to
+ * create an instance of this fragment.
+ */
+public class AllContactsFragment extends Fragment implements ContactsDataSuccess, ContactsAdapterCallBack {
+    private static final String ARG_PARAM1 = "param1";
+    private static final String ARG_PARAM2 = "param2";
+    private static final String MY_PREFS_NAME = "Shared_pref";
+    private static final String DETAILS_PARCEABLE_OBJECT = "contactsObject";
+
+    SharedPreferences sharedPrefs;
+    SharedPreferences.Editor editor;
+    ContactsAdapter contactsAdapter;
+    ApiServices apiInterface;
+    ProgressDialog mProgressDialog;
+    ContactsResponse contactsResponse;
+    BaseUtlis baseUtlis;
+    TextView no_internet;
+    TextView no_internet_explain;
+    ImageView no_interneted;
+
+    private String mParam1;
+    private String mParam2;
+    View mView;
+
+    private OnFragmentInteractionListener mListener;
+
+    public AllContactsFragment() {
+        // Required empty public constructor
+    }
+
+
+    public static AllContactsFragment newInstance(String param1, String param2) {
+        AllContactsFragment fragment = new AllContactsFragment();
+        Bundle args = new Bundle();
+        args.putString(ARG_PARAM1, param1);
+        args.putString(ARG_PARAM2, param2);
+        fragment.setArguments(args);
+        return fragment;
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        if (getArguments() != null) {
+            mParam1 = getArguments().getString(ARG_PARAM1);
+            mParam2 = getArguments().getString(ARG_PARAM2);
+        }
+    }
+
+    private void init() {
+        apiInterface = ApiClient.contactsInfo().create(ApiServices.class);
+        no_internet = mView.findViewById(R.id.tv_no_conection);
+        no_internet_explain = mView.findViewById(R.id.tv_no_connection_explain);
+        no_interneted = mView.findViewById(R.id.iv_no_connection);
+        baseUtlis = new BaseUtlis();
+        sharedPrefs = getContext().getSharedPreferences(MY_PREFS_NAME, MODE_PRIVATE);
+        editor = sharedPrefs.edit();
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        // Inflate the layout for this fragment
+        mView = inflater.inflate(R.layout.fragment_all_contacts, container, false);
+        init();
+
+        if (baseUtlis.checkWifiConnection(getContext())) {
+            no_internet.setVisibility(View.INVISIBLE);
+            no_internet_explain.setVisibility(View.INVISIBLE);
+            no_interneted.setVisibility(View.INVISIBLE);
+            getJobsData(this);
+        } else {
+            no_internet.setVisibility(View.VISIBLE);
+            no_internet_explain.setVisibility(View.VISIBLE);
+            no_interneted.setVisibility(View.VISIBLE);
+        }
+        return mView;
+    }
+
+    @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        if (context instanceof OnFragmentInteractionListener) {
+            mListener = (OnFragmentInteractionListener) context;
+        } else {
+            throw new RuntimeException(context.toString()
+                    + " must implement OnFragmentInteractionListener");
+        }
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        mListener = null;
+    }
+
+    @Override
+    public void onContactsDataSuccess(ContactsResponse contactsResponse) {
+        Gson gson = new Gson();
+        String json = gson.toJson(contactsResponse);
+        editor.putString(DETAILS_PARCEABLE_OBJECT, json);
+        editor.commit();
+        ArrayList<String> name = new ArrayList<>();
+        ArrayList<String> email = new ArrayList<>();
+        ArrayList<String> contact_number = new ArrayList<>();
+        ArrayList<String> image = new ArrayList<>();
+        ArrayList<String> id = new ArrayList<>();
+
+
+        for (int i = contactsResponse.getData().size() - 1; i > 0; i--) {
+            DataItem obj = contactsResponse.getData().get(i);
+            name.add(obj.getFirstName() + " " + obj.getLastName());
+            email.add(obj.getEmail());
+            contact_number.add(obj.getPhoneNo());
+            image.add(getResources().getString(R.string.profile_image_url));
+            id.add(obj.getId());
+
+        }
+
+        RecyclerView recyclerView = mView.findViewById(R.id.rv_for_you);
+        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        contactsAdapter = new ContactsAdapter(name, email, contact_number, image, id, getContext(), this);
+        recyclerView.setAdapter(contactsAdapter);
+    }
+
+
+    @Override
+    public void onLoveClickCallback(int position, ImageView love) {
+        String id = contactsResponse.getData().get(contactsResponse.getData().size()-position-1).getId();
+        if (sharedPrefs.contains("id_" + id)) {
+            love.setImageDrawable(getResources().getDrawable(R.drawable.ic_like));
+            editor.remove("id_" + id);
+            editor.apply();
+        } else {
+            editor.putString("id_" + id, String.valueOf(position));
+            editor.apply();
+            love.setImageDrawable(getResources().getDrawable(R.drawable.ic_like_filled));
+        }
+    }
+
+    @Override
+    public void onContactClickCallback(int position) {
+        DataItem obj = contactsResponse.getData().get(contactsResponse.getData().size()-position-1);
+        String first_name = obj.getFirstName();
+        String last_name = obj.getLastName();
+        String dob = obj.getDateOfBirth();
+        String email = obj.getEmail();
+        String phone_no = obj.getPhoneNo();
+        String image = getResources().getString(R.string.profile_image_url);
+        String gender = obj.getGender();
+        String id = obj.getId();
+        DetailsParceableObject detailsParceableObject = new DetailsParceableObject(first_name, last_name, email, phone_no, dob, gender, id, image);
+        Intent myIntent = new Intent(getContext(), DetailsActivity.class);
+        myIntent.putExtra(DETAILS_PARCEABLE_OBJECT, detailsParceableObject);
+        getActivity().startActivity(myIntent);
+    }
+
+    public interface OnFragmentInteractionListener {
+        void onFragmentInteraction(Uri uri);
+    }
+
+    public void getJobsData(ContactsDataSuccess callBack) {
+
+        mProgressDialog=baseUtlis.showLoading(getContext());
+        apiInterface.getContacts().enqueue(new Callback<ContactsResponse>() {
+            @Override
+            public void onResponse(Call<ContactsResponse> call, Response<ContactsResponse> response) {
+                if (response.code() == 200) {
+                    contactsResponse = response.body();
+                    mProgressDialog.dismiss();
+                    callBack.onContactsDataSuccess(contactsResponse);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ContactsResponse> call, Throwable t) {
+                mProgressDialog.dismiss();
+                baseUtlis.showErrorDialoge(getContext());
+
+            }
+        });
+
+    }
+
+}

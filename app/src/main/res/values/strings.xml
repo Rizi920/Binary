@@ -1,0 +1,41 @@
+<resources>
+    <string name="app_name">RizBinary</string>
+    <string name="search_query_hint">Search Contacts</string>
+    <string name="contacts">Contacts</string>
+    <string name="tab_one">All</string>
+    <string name="tab_two">Favourites</string>
+    <string name="job_requirements">Requirements:</string>
+    <string name="share_this">Share this Contact</string>
+    <string name="no_save_jobs">No Favourite Contacts</string>
+    <string name="no_save_explain">It seems you have not favourite any contact yet</string>
+    <string name="no_connection">Your Connection Seems Sleeping</string>
+    <string name="no_connection_explain">Slow or no internet, Please check you network</string>
+    <string name="no_search_results">No Search Results Found</string>
+    <string name="no_search_results_explain">We have Searched All Contacts But did not find Anything</string>
+    <string name="profile_image_url">https://d1qb2nb5cznatu.cloudfront.net/startups/i/705584-a36069f408c8a38ec77eb053465a8386-medium_jpg.jpg</string>
+    <string name="edit_profile">Add Contact</string>
+
+    <string name="save" >Save</string>
+    <string name="api_error" >Sorry Something went Wrong, Please Try Again</string>
+    <string name="error">Error</string>>
+    <string name="success">Success</string>>
+    <string name="contact_added">Contact Saved Successfully</string>>
+
+
+
+    <string name="id">Contact Saved Successfully</string>
+    <string name="email" >Email</string>
+    <string name="first_name" >First name</string>
+    <string name="last_name" >Last Name</string>
+    <string name="mobile_no" >Mobile No</string>
+    <string name="dob">Date of Birth:</string>
+    <string name="gender">Gender:</string>
+
+
+
+
+    <array name="gender">
+        <item>Male</item>
+        <item>Female</item>
+    </array>
+</resources>
